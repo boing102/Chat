@@ -1,11 +1,17 @@
 package chat.server;
 
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.SocketException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Server implements Runnable {
+	
+	private List<ServerClient> clients = new ArrayList<ServerClient>();
 
 	private DatagramSocket socket;
 	private int port;
@@ -44,12 +50,50 @@ public class Server implements Runnable {
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
-					String string = new String(packet.getData());
-					System.out.println(string);
+					process(packet);
 				}
 			}
 		};
 		receive.start();
+	}
+	
+	private void sendToAll(String message) {
+		for(int i = 0; i < clients.size(); i++) {
+			ServerClient client = clients.get(i);
+			
+		}
+	}
+	
+	private void send(final byte[] data, final InetAddress address, final int port){
+		send = new Thread("send"){
+			public void run(){
+				DatagramPacket packet = new DatagramPacket(data, data.length,address, port);
+				try{
+					socket.send(packet);
+				} catch(IOException e) {
+					e.printStackTrace();
+				}
+			}
+		};
+		send.start();
+	}
+	
+	private void process(DatagramPacket packet) {
+		String string = new String(packet.getData());
+		if(string.startsWith("/c/")) {
+			//UUID id = UUID.randomUUID();
+			int id = UniqueIdentifier.getIdentifier();
+			System.out.println("Identifier: " + id);
+			clients.add(new ServerClient(string.substring(3, string.length()), packet.getAddress(), packet.getPort(), id));
+			System.out.println(string.substring(3, string.length()));
+		} else if(string.startsWith("/m/")){
+			String message = string.substring(3, string.length());
+			sendToAll(message);
+		}
+		else {
+			System.out.println(string);
+		}
+		
 	}
 
 	private void manageClients() {
